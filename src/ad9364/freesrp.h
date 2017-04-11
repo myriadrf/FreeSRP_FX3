@@ -1,0 +1,14 @@
+#ifndef AD9364_FREESRP_H
+#define AD9364_FREESRP_H
+
+#define FREESRP_FPGA_VERSION_MAJOR 0
+#define FREESRP_FPGA_VERSION_MINOR 1
+#define FREESRP_FPGA_VERSION_PATCH 0
+
+#define AD9364_CMD_ERR_INVALID_COMMAND 8
+#define AD9364_CMD_ERR_INVALID_PARAMETERS 9
+
+int ad9364_init();
+int ad9364_cmd(uint8_t *recv_buf, uint8_t *resp_buf);
+
+#endif
