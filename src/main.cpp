@@ -10,8 +10,10 @@ extern "C" {
 #include <cyu3error.h>
 #include <cyu3usb.h>
 #include <cyu3gpio.h>
+#include <cyu3utils.h>
 
 
+static uvint32_t *EFUSE_DIE_ID = ((uvint32_t *) 0xE0055010);
 
 CyU3PThread _application_thread;
 uint8_t _ep0_buf[32];
@@ -262,10 +264,35 @@ CyBool_t CyFxApplicationUSBSetupCB(uint32_t setupdat0, uint32_t setupdat1)
     return isHandled;
 }
 
+void FreeSRPPopulateUUID(uint8_t *descriptor, uint32_t *die_id)
+{
+    static const char hexdigit[17] = "0123456789ABCDEF";
+    
+    for(int i = 0; i < 2; i++)
+    {
+	for(int j = 1; j <= 8; j++)
+	{
+	    descriptor[i*16 + j*2] = hexdigit[(die_id[i] >> (32-4*j)) & 0xF];
+	}	
+    }
+}
+
 void CyFxApplicationEnumerate()
 {
     CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
+    /* Used for uniquely identifying the FreeSRP device */
+    static uint8_t CyFxUSBUUIDDscr[] __attribute__ ((aligned (32))) =
+    {
+        0x22,                           /* Descriptor size */
+        CY_U3P_USB_STRING_DESCR,        /* Device descriptor type */
+        '0',0x00,'0',0x00,'0',0x00,'0',0x00,
+        '0',0x00,'0',0x00,'0',0x00,'0',0x00,
+        '0',0x00,'0',0x00,'0',0x00,'0',0x00,
+        '0',0x00,'0',0x00,'0',0x00,'0',0x00,
+    };
+    uint32_t die_id[2];
+    
     /* Start the USB functionality. */
     apiRetStatus = CyU3PUsbStart();
     if(apiRetStatus != CY_U3P_SUCCESS)
@@ -351,6 +378,15 @@ void CyFxApplicationEnumerate()
 
     /* String descriptor 2 */
     apiRetStatus = CyU3PUsbSetDesc(CY_U3P_USB_SET_STRING_DESCR, 2, (uint8_t *)CyFxUSBProductDscr);
+    if(apiRetStatus != CY_U3P_SUCCESS)
+    {
+        CyFxAppErrorHandler(apiRetStatus, 2);
+    }
+
+    /* String descriptor 3 -- this is used as an UUID for the FreeSRP and is based on the FX3's die ID */
+    CyU3PReadDeviceRegisters(EFUSE_DIE_ID, 2, die_id);
+    FreeSRPPopulateUUID(CyFxUSBUUIDDscr, die_id);
+    apiRetStatus = CyU3PUsbSetDesc(CY_U3P_USB_SET_STRING_DESCR, 3, (uint8_t *)CyFxUSBUUIDDscr);
     if(apiRetStatus != CY_U3P_SUCCESS)
     {
         CyFxAppErrorHandler(apiRetStatus, 2);

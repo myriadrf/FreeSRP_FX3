@@ -5,7 +5,7 @@
 #include <cyu3usbconst.h>
 #include <cyu3externcstart.h>
 
-#define FREESRP_VERSION "0.1.0"
+#define FREESRP_VERSION "0.1.1"
 
 #define CY_FX_APPLN_THREAD_STACK       (0x1000)                  /* Debug application thread stack size */
 #define CY_FX_APPLN_THREAD_PRIORITY    (8)                       /* Debug application thread priority */
